@@ -100,7 +100,7 @@ Pull requests that improve clarity, pedagogy, or numerical robustness are welcom
 
 ## License & Attribution
 - Code is released under the [MIT License](LICENSE).  
-- The historic reference is: **Riekert, P., & Schunck, T. E. (1940). Über die Fahreigenschaften von Kraftfahrzeugen.**  
+- The historic reference is: **Riekert, P., & Schunck, T. E. (1940). Über die Fahreigenschaften von Kraftfahrzeugen.** [https://doi.org/10.1007/BF02086921](https://doi.org/10.1007/BF02086921)  
 - Portions of the public-domain dedication quoted in the HTML footer acknowledge that the educational content is intended to be freely shared. Please keep the original attribution and contact details (`mschaefer@uni-wuppertal.de`) when redistributing.
 
 ---

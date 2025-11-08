@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="de">
+<!--
+    Interaktive Lernoberfläche für das lineare Einspurmodell.
+    Alle Logik (UI + Physik) steckt in dieser einzelnen HTML-Datei, um Workshops ohne Build-Setup zu ermöglichen.
+-->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interaktives Einspurmodell</title>
+    <!-- Tailwind CDN + Google Fonts liefern schnell ein modernes UI ohne Build-Schritt. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Minimaler Zusatz zu Tailwind: sorgt für einheitliche Eingabe- und Ausgabekomponenten. */
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* Parameter-Container ordnen Label, Zahleneingabe und Slider übereinander. */
         .param-group {
             display: flex;
             flex-direction: column;
@@ -42,6 +49,7 @@
         .param-input-group input[type="number"] {
             -moz-appearance: textfield;
         }
+        /* Browser-übergreifende Slider-Styles, damit die UI im Unterricht gleich aussieht. */
         .slider-input {
             width: 100%;
             -webkit-appearance: none;
@@ -72,6 +80,7 @@
             background: #0ea5e9;
             cursor: pointer;
         }
+        /* Kartenlayout für die Ausgabegrößen. */
         .output-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -98,6 +107,7 @@
             color: #334155;
             margin-top: 0.25rem;
         }
+        /* Farbcode: macht die gleichen Variablen in Grafik und Karten wiedererkennbar. */
         .color-v { color: #0ea5e9; }
         .color-beta { color: #dc2626; }
         .color-Fyf { color: #16a34a; }
@@ -106,6 +116,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800">
 
+    <!-- Responsive Außencontainer mit seitlichen Abständen auf großen Displays. -->
     <div class="container mx-auto p-4 md:p-8">
         <!-- Header -->
         <header class="text-center mb-8">
@@ -115,16 +126,20 @@
         </header>
 
         <!-- Main Content -->
+        <!-- Grid teilt Seite in Eingabepanel (1 Spalte) und Visualisierungsbereich (2 Spalten) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <!-- Column 1: Input Parameters -->
             <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-slate-200 flex flex-col gap-6">
+                <!-- Jeder Slider spiegelt eine Fahrzeug- oder Betriebsgröße wider, die direkt in die Modellgleichungen eingeht. -->
                 <div>
                     <h2 class="text-xl font-bold mb-4 border-b pb-3 text-slate-900">Eingabeparameter</h2>
                     
                     <!-- Vehicle Parameters -->
+                    <!-- Diese Werte beschreiben das Fahrzeug selbst (Massenträgheit + Geometrie). -->
                     <h3 class="text-lg font-semibold text-sky-700 mb-4">Fahrzeugparameter</h3>
                     <div id="vehicle-params" class="space-y-4">
+                        <!-- Slider + Zahleneingabe teilen sich IDs, damit sie von der JS-Sync-Funktion gekoppelt werden. -->
                         <!-- Mass -->
                         <div class="param-group">
                             <div class="param-label-group">
@@ -170,6 +185,7 @@
                             <input type="range" id="lr-slider" class="slider-input" min="0.5" max="2.5" step="0.1" value="1.6">
                         </div>
                         <!-- Cornering Stiffness Front -->
+                        <!-- Lineares Reifenmodell: F_y = c * α, hier getrennt nach Vorder- und Hinterachse. -->
                         <div class="param-group">
                              <div class="param-label-group">
                                 <label for="cf-slider" class="font-medium color-Fyf">Schräglaufsteifigkeit v (c<sub>f</sub>)</label>
@@ -195,6 +211,7 @@
 
                     <!-- Driving State -->
                     <h3 class="text-lg font-semibold text-sky-700 mt-6 mb-4">Fahrzustand</h3>
+                    <!-- Longitudinalgeschwindigkeit und Lenkwinkel treiben das stationäre Gleichgewicht. -->
                     <div id="driving-params" class="space-y-4">
                         <!-- Velocity -->
                         <div class="param-group">
@@ -236,6 +253,7 @@
             <!-- Column 2: Visualization and Outputs -->
             <div class="lg:col-span-2 space-y-8">
                 <!-- Visualization -->
+                <!-- Canvas zeichnet Fahrzeug von der Seite (y-Achse nach unten), mit Kräften + Winkeln zur schnellen Interpretation. -->
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
                     <h2 class="text-xl font-bold mb-4 text-slate-900">Visualisierung</h2>
                     <div class="bg-slate-100 rounded-lg overflow-hidden border border-slate-200 aspect-[2/1]">
@@ -244,6 +262,7 @@
                 </div>
 
                 <!-- Outputs -->
+                <!-- Karten spiegeln exakt die Größen wider, die in Übungen häufig abgefragt werden (β, ψ̇, α_f, ...). -->
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
                     <h2 class="text-xl font-bold mb-4 text-slate-900">Stationäre Ausgabegrößen</h2>
                     <div id="output-values" class="output-grid">
@@ -254,6 +273,7 @@
         </div>
         
         <!-- Footer -->
+        <!-- Enthält Literaturverweis und Lizenzinformationen, damit Studierende Quellen nachlesen können. -->
         <footer class="text-center mt-12 text-xs text-slate-500">
             <p>
                 Originale Veröffentlichung: Riekert, P., Schunck, T.E. (1940). Über die Fahreigenschaften von Kraftfahrzeugen. 
@@ -266,7 +286,15 @@
     </div>
 
     <script>
+        /*
+         * Skriptüberblick:
+         * 1) UI: Sliderelemente werden mit Zahleneingaben verbunden und bei Änderungen synchronisiert.
+         * 2) Physik: calculateVehicleDynamics bildet das lineare Einspurmodell (Riekert/Schunck) im stationären Zustand ab.
+         * 3) Visualisierung: drawVehicle zeichnet Fahrzeug, Geschwindigkeitsvektor und Reifenseitenkräfte maßstäblich in den Canvas.
+         * 4) Ausgabe: updateUI spiegelt die berechneten Größen in Karten wider und zeigt Warnungen außerhalb des Gültigkeitsbereichs.
+         */
         // --- DOM Elements ---
+        // Zuordnung von physikalischen Parametern zu den jeweiligen Slider- und Input-IDs.
         const paramsConfig = {
             m: { slider: 'mass-slider', input: 'mass-input' },
             Iz: { slider: 'Iz-slider', input: 'Iz-input' },
@@ -278,6 +306,7 @@
             delta: { slider: 'delta-slider', input: 'delta-input' },
         };
         const inputs = {};
+        // inputs[key] enthält immer das Slider-/Input-Paar für spätere Synchronisation.
         for(const key in paramsConfig){
             inputs[key] = {
                 slider: document.getElementById(paramsConfig[key].slider),
@@ -285,13 +314,14 @@
             };
         }
 
-        const canvas = document.getElementById('vehicle-canvas');
+        const canvas = document.getElementById('vehicle-canvas'); // Zeichnung der Fahrzeuggeometrie.
         const ctx = canvas.getContext('2d');
-        const outputContainer = document.getElementById('output-values');
+        const outputContainer = document.getElementById('output-values'); // Grid mit Zahlenwerten.
         let currentParams = {};
         let currentOutputs = {};
 
         // --- Color Configuration ---
+        // Farben werden sowohl für Canvas-Vektoren als auch für Textausgaben wiederverwendet.
         const colorMap = {
             v: '#0ea5e9',
             beta: '#dc2626',
@@ -300,42 +330,56 @@
         };
 
         // --- Utility Functions ---
-        const radToDeg = rad => rad * 180 / Math.PI;
-        const degToRad = deg => deg * Math.PI / 180;
+        const radToDeg = rad => rad * 180 / Math.PI; // Anzeige erfolgt überwiegend in Grad.
+        const degToRad = deg => deg * Math.PI / 180; // Rechenweg benötigt Radiant.
 
         // --- Core Calculation Logic ---
         function calculateVehicleDynamics(params) {
             const { m, Iz, lf, lr, cf, cr, v, delta } = params;
+            // Hinweis: Iz wird in dieser stationären Version nicht benötigt, bleibt aber als UI-Parameter für spätere Erweiterungen erhalten.
             
-            // Check for critical speed and stability
+            /*
+             * Physikalischer Hintergrund:
+             * Das lineare Einspurmodell setzt die Gleichgewichte von Querkräften und -momenten um den Schwerpunkt an.
+             * - cf und cr approximieren die linearisierten Reifenseitenkräfte (F_y = c * α).
+             * - lf/lr bilden die Geometrie des Fahrzeugs (Abstand Schwerpunkt zu Achsen).
+             * - v und δ stellen die gefahrene Geschwindigkeit und den Lenkeinschlag dar.
+             */
+            
+            // 1) Stabilitätsprüfung: Bei δ→0 besitzt das System eine kritische Geschwindigkeit (unter-/übersteuern).
             const criticalSpeedSquared = (cf * cr * (lf + lr)**2) / (m * (lf * cf - lr * cr));
             const criticalSpeed = Math.sqrt(criticalSpeedSquared);
 
-            // Handle the case where the denominator becomes zero or negative, which means the model is not applicable.
+            // Bei v > v_crit oder sehr kleinen Geschwindigkeiten verliert das lineare Modell seine Gültigkeit -> wir warnen den Nutzer.
             if (v >= criticalSpeed || v < 0.1) {
                 return { beta: 0, psi_dot: 0, ay: 0, alpha_f: 0, alpha_r: 0, F_yf: 0, F_yr: 0, error: true };
             }
 
-            const l = lf + lr;
-            const delta_rad = degToRad(delta);
+            const l = lf + lr; // Radstand
+            const delta_rad = degToRad(delta); // Steuerwinkel benötigt rad für trigonometrische Funktionen.
 
+            // determinant entspricht dem Nenner der stationären Lösung (aus Inversion der Bewegungsdifferentialgleichungen).
             const determinant = ((cf * cr * l * l) / v) - (m * v * (lf * cf - lr * cr));
             
+            // Wird der Nenner ~0, ist das System singular (theoretisch unendlich große Reaktion) -> Eingaben ungültig.
             if (Math.abs(determinant) < 1e-6) {
                 return { beta: 0, psi_dot: 0, ay: 0, alpha_f: 0, alpha_r: 0, F_yf: 0, F_yr: 0, error: true };
             }
 
+            // Yaw-Rate-Gleichgewicht: Verhältnis aus angeregtem Moment (cf*cr*l*δ) und determinant.
             const psi_dot_num = cf * cr * l * delta_rad;
             const psi_dot = psi_dot_num / determinant;
 
+            // Schwimmwinkel entsteht durch Balance der Reifenkräfte (abhängig von Hebelarmen und Massenanteilen).
             const beta_num = cf * delta_rad * (((lr * cr * l) / v) - (m * v * lf));
             const beta = beta_num / determinant;
             
+            // Lokale Schräglaufwinkel resultieren aus δ, β und der Giergeschwindigkeit an den Achsen.
             const alpha_f = delta_rad - beta - (lf * psi_dot) / v;
             const alpha_r = -beta + (lr * psi_dot) / v;
             const F_yf = cf * alpha_f;
             const F_yr = cr * alpha_r;
-            const ay = v * psi_dot;
+            const ay = v * psi_dot; // Querbeschleunigung im Schwerpunkt (v * ψ̇ bei stationärem Kreisfahren).
 
             return { beta, psi_dot, ay, alpha_f, alpha_r, F_yf, F_yr, criticalSpeed };
         }
@@ -351,11 +395,17 @@
             ctx.save();
             ctx.font = '14px Inter';
 
+            /*
+             * Canvas-Koordinatensystem:
+             * - Ursprung im Canvas links oben (Browser-Standard), deshalb verschieben wir das Fahrzeug in die Mitte (cx, cy).
+             * - Y zeigt nach unten; die Darstellung bleibt qualitativ (kein maßstabsgerechtes Fahrzeug).
+             */
             const wheelbase = lf + lr;
-            const scale = h * 0.6 / wheelbase; 
+            const scale = h * 0.6 / wheelbase; // Radstand wird auf ~60 % der Canvas-Höhe skaliert.
             const cx = w / 2;
             const cy = h / 2;
 
+            // Hilfsfunktion für Vektorpfeile (wird für Geschwindigkeit und Seitenkräfte genutzt).
             function drawArrow(fromX, fromY, toX, toY, color = 'black', lw = 2) {
                 const headlen = 10;
                 const dx = toX - fromX;
@@ -377,6 +427,7 @@
             }
             
             // Center of Gravity
+            // Visualisiert den Bezugspunkt, um den die Gleichungen formuliert werden.
             ctx.beginPath();
             ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
             ctx.fillStyle = colorMap.beta;
@@ -384,6 +435,7 @@
             ctx.fillText('Schwerpunkt', cx + 10, cy + 5);
 
             // Chassis
+            // Einfache Linie zwischen Vorder- und Hinterachse, um den Radstand zu zeigen.
             const frontAxleY = cy - lf * scale;
             const rearAxleY = cy + lr * scale;
             ctx.beginPath();
@@ -394,6 +446,7 @@
             ctx.stroke();
 
             // Wheels
+            // Vorderachse wird um den aktuellen Lenkwinkel δ gedreht, damit Lernende die Fahrtrichtung sehen.
             const wheelWidth = 30;
             const wheelLength = 10;
             ctx.fillStyle = '#1e293b';
@@ -407,8 +460,8 @@
             ctx.restore();
             
             // --- Draw Vectors and Angles ---
-            const forceScale = 0.01; 
-            const velocityScale = 4;
+            const forceScale = 0.01;  // Kräfte sind in Newton -> Skalierung nötig, um sie sichtbar zu machen.
+            const velocityScale = 4;  // Geschwindigkeit bestimmt Pfeillänge; ebenfalls skaliert, um ins Canvas zu passen.
 
             // Velocity Vector (with beta)
             const v_endX = cx + params.v * velocityScale * Math.sin(beta);
@@ -428,6 +481,7 @@
             ctx.fillText('F_y,h', cx + F_yr * forceScale + 5, rearAxleY);
             
             // Side Slip Angle Arc (beta)
+            // Zeigt β als Winkel zwischen Fahrzeuglängsachse (nach oben) und Geschwindigkeit.
             ctx.beginPath();
             ctx.strokeStyle = 'rgba(220, 38, 38, 0.7)';
             ctx.lineWidth = 1;
@@ -442,6 +496,7 @@
 
         // --- UI Update Logic ---
         function updateUI(outputs) {
+            // Die Reihenfolge der Größen folgt typischer Lernlogik: erst Winkel, dann Kräfte.
             const outputData = [
                 { key: 'beta', label: 'Schwimmwinkel (β)', value: radToDeg(outputs.beta), unit: '°' },
                 { key: 'psi_dot', label: 'Giergeschwindigkeit (ψ̇)', value: radToDeg(outputs.psi_dot), unit: '°/s' },
@@ -469,6 +524,7 @@
                 outputContainer.appendChild(card);
             });
             if (outputs.error) {
+                 // Wird das Modell instabil oder numerisch singulär, geben wir erklärenden Text statt Zahlen aus.
                  const errorCard = document.createElement('div');
                  errorCard.className = 'output-card col-span-full bg-red-50 border-red-200';
                  errorCard.innerHTML = `<div class="output-label text-red-700 font-semibold">
@@ -485,22 +541,28 @@
 
         // --- Main Application Logic ---
         function main() {
+            // 1) Aktuelle UI-Werte einsammeln ...
             for (const key in inputs) {
                 currentParams[key] = parseFloat(inputs[key].slider.value);
             }
+            // 2) Physik auswerten ...
             currentOutputs = calculateVehicleDynamics(currentParams);
+            // 3) Zahlen-UI aktualisieren ...
             updateUI(currentOutputs);
+            // 4) und Visualisierung neu zeichnen.
             drawVehicle(currentParams, currentOutputs);
         }
 
         // --- Event Listeners and Input Sync ---
         function syncInputs(source, key) {
+             // Slider und Zahleneingabe sollen immer denselben Wert anzeigen.
              const { slider, input } = inputs[key];
              const target = source.type === 'range' ? input : slider;
              target.value = source.value;
              main();
         }
 
+        // Bidirektionale Event-Handler: egal ob Slider oder Zahleneingabe bedient wird, alles bleibt konsistent.
         for (const key in inputs) {
             const { slider, input } = inputs[key];
             slider.addEventListener('input', (e) => syncInputs(e.target, key));
@@ -515,6 +577,7 @@
         }
         
         function setupCanvas() {
+            // Canvas füllt stets den verfügbaren Platz im Kartenlayout (aspektabhängig über CSS).
             const container = canvas.parentElement;
             const size = container.getBoundingClientRect();
             canvas.width = size.width;
@@ -522,6 +585,7 @@
             main();
         }
 
+        // Initial zeichnen und bei Fensteränderungen erneut skalieren, damit Projektionen sauber bleiben.
         window.addEventListener('load', setupCanvas);
         window.addEventListener('resize', setupCanvas);
     </script>
