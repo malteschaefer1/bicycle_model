@@ -2,6 +2,8 @@
 
 Interactive single-track (bicycle) model for teaching and demonstrating basic vehicle lateral dynamics. The HTML app visualizes how classic linear bicycle-model assumptions translate into slip angles, yaw rates, lateral forces, and stability limits. It is intentionally lightweight so it can be dropped into a lecture, lab, or workshop without additional tooling.
 
+![Interactive model (preview)](example.png)
+
 > **Educational focus**  
 > The model is meant for qualitative understanding and classroom use. It is *not* a validated vehicle dynamics simulator and should not be used to size components, certify control systems, or predict safety-critical behavior.
 
